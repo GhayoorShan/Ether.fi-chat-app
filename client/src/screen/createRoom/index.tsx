@@ -1,7 +1,6 @@
 const CreateRoom = () => {
   return (
     <div>
-      jd
       {/* <input
         type="text"
         value={userName}

@@ -1,11 +1,7 @@
 import { useSelector } from "react-redux";
 
 const ChatRoomInfo = () => {
-  // const { username, chatcode, chatId, chatHistory } = useSelector(
-  //   (state: any) => state.chatData
-  // );
   const { participants } = useSelector((state: any) => state.chatData);
-  console.log({ participants });
 
   return (
     <div className="basis-1/3 flex flex-col p-5 ">

@@ -10,11 +10,6 @@ import {
   removeChatData,
 } from "../../redux/chatDataSlice";
 
-interface Message {
-  username: string;
-  message: string;
-}
-
 function JoinRoom() {
   const [username, setUsername] = useState("");
   const [chatcode, setChatCode] = useState("");
@@ -25,7 +20,7 @@ function JoinRoom() {
   const socket = useMemo(() => connectSocket(socketUrl), []);
 
   const handleJoinRoom = () => {
-    // dispatch(removeChatData({}));
+    dispatch(removeChatData({}));
     if (username && chatcode) {
       let response: any = socket.emit("joinRoom", {
         chatcode,
@@ -34,14 +29,11 @@ function JoinRoom() {
 
       if (response?.connected) {
         socket.on("chatData", (data) => {
-          console.log("data message", data);
-
           dispatch(
             addChatData({
               username,
               chatcode,
               chatId: data.chat._id,
-              // chatHistory: data.messages,
             })
           );
           dispatch(addChatHistory({ chatHistory: data.messages }));
@@ -57,7 +49,6 @@ function JoinRoom() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* <h2 className="text-center">Join Chat </h2> */}
       <input
         type="text"
         className="rounded-lg outline-none text-black p-2"
@@ -78,15 +69,6 @@ function JoinRoom() {
       >
         Join Chat
       </button>
-      {/* <p className="text-center">Or</p>
-      <button
-        className=" px-5 py-2 rounded-md cursor-pointer"
-        onClick={() => {
-          navigate("/create-room");
-        }}
-      >
-        Create a Chatroom
-      </button> */}
     </div>
   );
 }

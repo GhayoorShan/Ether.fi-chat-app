@@ -8,7 +8,7 @@ import chatDataSlice from "./chatDataSlice";
 const persistConfig = {
   key: "chat",
   storage,
-  whitelist: ["username", "chatId", "chatcode"],
+  whitelist: ["username", "chatId", "chatcode","chatHistory","participants"],
 };
 
 const chatData = persistReducer(persistConfig, chatDataSlice);
