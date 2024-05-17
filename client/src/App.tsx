@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import JoinRoom from "./screen/joinRoom";
 import ChatRoom from "./screen/chatRoom";
 import { Provider } from "react-redux";
-import store from "./redux/store";
+import { store } from "./redux/store";
 
 function App() {
   return (

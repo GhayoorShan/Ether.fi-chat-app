@@ -8,57 +8,66 @@ import { log } from "console";
 export async function getMessagesForUserAndChat(
   username: string,
   chatcode: string
+  //@ts-ignore
 ): Promise<{ chat: ChatDocument; messages: MessageDocument[] }> {
   // Find or create the user
-  let user = await UserModel.findOne({ username });
-  if (!user) {
-    user = await UserModel.create({ username });
+  try {
+    console.log("sadsadsadsadsad");
+
+    let user = await UserModel.findOne({ username });
+    if (!user) {
+      user = await UserModel.create({ username });
+    }
+
+    // Find or create the chat
+    let chat = await ChatModel.findOne({ chatcode: chatcode });
+    console.log("cccchat", chat);
+
+    if (!chat) {
+      chat = await ChatModel.create({
+        participants: [{ userId: user.id, username: user.username }],
+        chatname: `Chat for ${chatcode}`,
+        chatcode: chatcode,
+      });
+    }
+
+    // Check if the user is a participant in the chat
+    const isParticipant = chat.participants.some(
+      (participant) => participant.userId.toString() === user.id.toString()
+    );
+    if (!isParticipant) {
+      // Add the user as a participant in the chat
+      chat.participants.push({ userId: user.id, username: user.username });
+      await chat.save();
+    }
+
+    // Retrieve messages for the chat
+    const messages = await MessageModel.find({ chatId: chat._id });
+
+    return { chat, messages };
+  } catch (error) {
+    console.log(error);
   }
-
-  // Find or create the chat
-  let chat = await ChatModel.findOne({ chatcode: chatcode });
-  if (!chat) {
-    chat = await ChatModel.create({
-      participants: [{ userId: user.id, username: user.username }],
-      chatname: `Chat for ${chatcode}`,
-      chatcode: chatcode,
-    });
-  }
-
-  // Check if the user is a participant in the chat
-  const isParticipant = chat.participants.some(
-    (participant) => participant.userId.toString() === user.id.toString()
-  );
-  if (!isParticipant) {
-    // Add the user as a participant in the chat
-    chat.participants.push({ userId: user.id, username: user.username });
-    await chat.save();
-  }
-
-  // Retrieve messages for the chat
-  const messages = await MessageModel.find({ chatid: chat._id });
-
-  return { chat, messages };
 }
 
 export async function saveMessage({
   msg,
   username,
-  chatid,
+  chatId,
 }: {
   msg: string;
   username: string;
-  chatid: string;
+  chatId: string;
 }): Promise<void> {
   try {
     // Create a new message document
-    const chatObjectId = new mongoose.Types.ObjectId(chatid);
+    const chatObjectId = new mongoose.Types.ObjectId(chatId);
 
     // Create a new message document
     const message = new MessageModel({
       content: msg,
       username,
-      chatid: chatObjectId, // Use the converted ObjectId
+      chatId: chatObjectId, // Use the converted ObjectId
       timestamp: new Date(), // Assuming you have a timestamp field in your Message schema
     });
 

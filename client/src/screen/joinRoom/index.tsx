@@ -3,7 +3,12 @@ import connectSocket from "../../utils/helpers";
 import { useNavigate } from "react-router-dom";
 import { socketUrl } from "../../utils/const";
 import { useDispatch } from "react-redux";
-import { addChatData } from "../../redux/chatDataSlice";
+import {
+  addChatData,
+  addChatHistory,
+  addParticipants,
+  removeChatData,
+} from "../../redux/chatDataSlice";
 
 interface Message {
   username: string;
@@ -20,30 +25,35 @@ function JoinRoom() {
   const socket = useMemo(() => connectSocket(socketUrl), []);
 
   const handleJoinRoom = () => {
+    // dispatch(removeChatData({}));
     if (username && chatcode) {
-      let response: any = socket.emit("join", {
+      let response: any = socket.emit("joinRoom", {
         chatcode,
         username,
       });
 
       if (response?.connected) {
         socket.on("chatData", (data) => {
+          console.log("data message", data);
+
           dispatch(
             addChatData({
               username,
               chatcode,
-              timestamp: Date.now(),
-              chatid: data.chat._id,
+              chatId: data.chat._id,
+              // chatHistory: data.messages,
             })
           );
+          dispatch(addChatHistory({ chatHistory: data.messages }));
+          dispatch(addParticipants({ participants: data.chat.participants }));
         });
+
         navigate("/chat-room");
       } else {
         console.error("Failed to join chat room:", response?.error);
       }
     }
   };
-  console.log("---username----", username, chatcode);
 
   return (
     <div className="flex flex-col gap-5">

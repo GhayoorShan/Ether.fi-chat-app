@@ -3,18 +3,18 @@ import { getMessagesForUserAndChat, saveMessage } from "./services/userService";
 
 const userSockets: Map<string, Socket> = new Map();
 const userRooms: Map<string, string[]> = new Map();
-let activeUsersCount: number = 0;
-
 export default function initializeSocket(io: SocketIO) {
   io.on("connection", (socket: Socket) => {
     console.log(" @@@@ Socket user connected.");
 
-    // Increment active users count upon connection
-    activeUsersCount++;
-
-    socket.on("join", async (e) => {
+    // console.log(io.of("/").adapter);
+    socket.on("joinRoom", async (e) => {
       try {
+        console.log("pechy", e);
+
         let data = await getMessagesForUserAndChat(e.username, e.chatcode);
+        console.log(data);
+
         userSockets.set(e.username, socket);
         if (userRooms.has(e.username)) {
           userRooms.get(e.username)?.push(e.chatcode);
@@ -23,8 +23,6 @@ export default function initializeSocket(io: SocketIO) {
         }
         socket.join(e.chatcode);
         // Emit the chat data and messages to the client
-        console.log(data);
-
         socket.emit("chatData", data);
       } catch (error) {
         console.error("Error joining chat:", error.message);
@@ -33,19 +31,23 @@ export default function initializeSocket(io: SocketIO) {
 
     socket.on("sendMessage", async (payload) => {
       try {
-        // Emit the message to the specified room
-        let { username, chatcode, chatid, msg } = payload;
-        console.log(payload);
+        let { msg, username, chatcode, chatId } = payload;
 
-        socket.broadcast.to(chatcode).emit("message", payload);
+        // Emit the message to the specified room
+        io.emit("receiveMessages", { msg, username });
         console.log(`Message emitted to room ${chatcode}:`, {
-          payload,
+          msg,
+          username,
+          chatcode,
+          chatId,
         });
 
         // Save the message to the database
-        await saveMessage({ msg, username, chatid }); // Adjust this call according to your message service implementation
+        await saveMessage({ msg, username, chatId }); // Adjust this call according to your message service implementation
         console.log("Message saved to the database:", {
-          payload,
+          msg,
+          username,
+          chatcode,
         });
       } catch (error) {
         console.error("Error sending message:", error.message);
@@ -53,9 +55,6 @@ export default function initializeSocket(io: SocketIO) {
     });
 
     socket.on("disconnect", () => {
-      // Decrement active users count upon disconnection
-      activeUsersCount--;
-
       // Find the user associated with the socket
       const username = getSocketForUser(socket);
       if (username) {
@@ -69,11 +68,6 @@ export default function initializeSocket(io: SocketIO) {
         // Remove user from userRooms map
         userRooms.delete(username);
       }
-    });
-
-    // Event to get the number of active users
-    socket.on("getActiveUsersCount", () => {
-      socket.emit("activeUsersCount", activeUsersCount);
     });
 
     function getSocketForUser(socket: Socket): string | undefined {
