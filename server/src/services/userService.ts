@@ -36,7 +36,7 @@ export async function getMessagesForUserAndChat(
   }
 
   // Retrieve messages for the chat
-  const messages = await MessageModel.find({ chatId: chat._id });
+  const messages = await MessageModel.find({ chatid: chat._id });
 
   return { chat, messages };
 }
@@ -44,21 +44,21 @@ export async function getMessagesForUserAndChat(
 export async function saveMessage({
   msg,
   username,
-  chatId,
+  chatid,
 }: {
   msg: string;
   username: string;
-  chatId: string;
+  chatid: string;
 }): Promise<void> {
   try {
     // Create a new message document
-    const chatObjectId = new mongoose.Types.ObjectId(chatId);
+    const chatObjectId = new mongoose.Types.ObjectId(chatid);
 
     // Create a new message document
     const message = new MessageModel({
       content: msg,
       username,
-      chatId: chatObjectId, // Use the converted ObjectId
+      chatid: chatObjectId, // Use the converted ObjectId
       timestamp: new Date(), // Assuming you have a timestamp field in your Message schema
     });
 

@@ -23,6 +23,8 @@ export default function initializeSocket(io: SocketIO) {
         }
         socket.join(e.chatcode);
         // Emit the chat data and messages to the client
+        console.log(data);
+
         socket.emit("chatData", data);
       } catch (error) {
         console.error("Error joining chat:", error.message);
@@ -32,14 +34,16 @@ export default function initializeSocket(io: SocketIO) {
     socket.on("sendMessage", async (payload) => {
       try {
         // Emit the message to the specified room
-        let { username, chatcode, chatId, msg } = payload;
+        let { username, chatcode, chatid, msg } = payload;
+        console.log(payload);
+
         socket.broadcast.to(chatcode).emit("message", payload);
         console.log(`Message emitted to room ${chatcode}:`, {
           payload,
         });
 
         // Save the message to the database
-        await saveMessage({ msg, username, chatId }); // Adjust this call according to your message service implementation
+        await saveMessage({ msg, username, chatid }); // Adjust this call according to your message service implementation
         console.log("Message saved to the database:", {
           payload,
         });
