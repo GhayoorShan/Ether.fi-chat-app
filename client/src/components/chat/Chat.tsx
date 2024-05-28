@@ -1,20 +1,86 @@
 import { useEffect, useRef, useState } from "react";
-import connectSocket from "../../utils/helpers";
-import { socketUrl } from "../../utils/const";
+
 import { useDispatch, useSelector } from "react-redux";
-import { updateChatHistory } from "../../redux/chatDataSlice";
+import {
+  updateChatHistory,
+  updateParticipants,
+} from "../../redux/chatDataSlice";
+
+import { useAppSelector } from "../../hooks/hooks";
+import { useNavigate } from "react-router-dom";
+import { socketUrl } from "../../utils/const";
+import toast from "react-hot-toast";
 
 const Chat = () => {
-  const [socket, setSocket] = useState<any>(null);
   const [message, setMessage] = useState<string>("");
 
   const endRef = useRef<HTMLDivElement>(null);
 
-  const { username, chatcode, chatId, chatHistory } = useSelector(
+  const { username, chatcode, chatName, chatId, chatHistory } = useSelector(
     (state: any) => state.chatData
   );
 
+  const navigate = useNavigate();
+
+  const socket = useAppSelector((state) => state.socket.socket);
+  // console.log("socket in chat room ", socket);
   const dispatch = useDispatch();
+  useEffect(() => {
+    fetch(`${socketUrl}/analytics/messages-by-user`)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }, []);
+
+  const handleNotification = (data: any) => {
+    toast.success(data);
+    console.log("notification---", data);
+  };
+
+  const handleReceiveMessages = (data: any) => {
+    console.log("Chat data received:", data);
+    dispatch(
+      updateChatHistory({
+        username: data.username,
+        content: data.msg,
+        chatId: data.chatId,
+        chatName: data.chatName,
+      })
+    );
+  };
+  const handleParticipantAdded = (data: any) => {
+    console.log("participantAdded---", data);
+    dispatch(updateParticipants(data));
+  };
+  const handleParticipantLeft = (data: any) => {
+    console.log("participantLeft---", data);
+  };
+
+  const handleActiveUsers = (users: string[]) => {
+    console.log("ActiveUsers---", users);
+  };
+  useEffect(() => {
+    if (socket) {
+      socket.on("notification", handleNotification);
+      socket.on("participantAdded", handleParticipantAdded);
+      socket.on("receiveMessages", handleReceiveMessages);
+      socket.on("participantLeft", handleParticipantLeft);
+      socket.on("activeUsers", handleActiveUsers);
+
+      // Clean up the listeners on component unmount or when socket changes
+      return () => {
+        socket.off("notification", handleNotification);
+        socket.off("receiveMessages", handleReceiveMessages);
+        socket.off("participantAdded", handleParticipantAdded);
+        socket.off("participantLeft", handleParticipantLeft);
+        socket.off("activeUsers", handleActiveUsers);
+      };
+    }
+  }, [socket, dispatch]);
 
   useEffect(() => {
     if (endRef.current) {
@@ -22,38 +88,15 @@ const Chat = () => {
     }
   }, [chatHistory]);
 
-  useEffect(() => {
-    const newSocket = connectSocket(socketUrl);
-    setSocket(newSocket);
-
-    newSocket.on("receiveMessages", (data: any) => {
-      dispatch(
-        updateChatHistory({
-          username: data.username,
-          content: data.msg,
-          chatId: data.chatId,
-        })
-      );
-    });
-
-    // clean up to close instance and to avoid side effects
-    return () => {
-      newSocket.close();
-    };
-  }, [dispatch]);
-
   const handleSend = () => {
     if (message === "") return;
-    const response: any = socket.emit("sendMessage", {
+    socket?.emit("sendMessage", {
       username,
       chatcode,
       chatId,
       msg: message,
     });
-
-    if (response.connected) {
-      setMessage("");
-    }
+    setMessage("");
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -61,18 +104,31 @@ const Chat = () => {
       handleSend();
     }
   };
+  const handleLeftRoom = () => {
+    socket?.emit("leaveRoom", {
+      username,
+      chatcode,
+    });
+    navigate("/");
+  };
 
   return (
     <div className="grow border-l border-[#FFFFFF20] border-opacity-75 h-full flex flex-col">
       <div className="p-5 flex items-center justify-between border-b border-[#FFFFFF20] border-opacity-75 ">
-        {/* Top */}
+        <p>{chatName}</p>
+        {/* <button
+          onClick={handleLeftRoom}
+          className="bg-red-500 px-4 py-2 rounded-md"
+        >
+          Leave Room
+        </button> */}
       </div>
-      <div className="p-5 flex-1 overflow-y-scroll scrollbar-thin scrollbar-thumb-[#FFFFFF20] scrollbar-track-gray-200 flex flex-col gap-5">
+      <div className="p-5 flex-1 overflow-y-scroll scrollbar flex flex-col gap-5">
         {chatHistory?.map((item: any, index: number) => (
           <div
             key={index}
             className={`min-w-40 max-w-[70%] rounded-xl ${
-              username === item.username
+              username === item?.username
                 ? "self-end bg-[#3765da]"
                 : "self-start bg-[#11192a]"
             }`}
@@ -92,7 +148,7 @@ const Chat = () => {
           placeholder="Type a message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyPress}
         />
         <button
           className="bg-[#3765da] px-5 py-2 rounded-md cursor-pointer"

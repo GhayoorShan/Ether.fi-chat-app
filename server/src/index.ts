@@ -7,6 +7,7 @@ import initializeSocket from "./socket";
 import mongoose from "mongoose";
 import bodyParser from "body-parser"; // Import body-parser
 import routes from "./routes/routes";
+import cors from "cors";
 
 dotenv.config();
 
@@ -17,8 +18,18 @@ const io = new SocketIO(server, {
     origin: "http://localhost:5173",
   },
 });
+
 initializeSocket(io);
+
 app.use(express.static(path.join(__dirname, "public")));
+
+const allowedOrigins = ["http://localhost:5173"];
+
+const options: cors.CorsOptions = {
+  origin: allowedOrigins,
+};
+
+app.use(cors(options));
 
 // Use body-parser middleware
 app.use(bodyParser.json()); // parse application/json

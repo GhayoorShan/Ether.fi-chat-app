@@ -1,7 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import connectSocket from "../../utils/helpers";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { socketUrl } from "../../utils/const";
 import { useDispatch } from "react-redux";
 import {
   addChatData,
@@ -10,6 +8,8 @@ import {
   removeChatData,
 } from "../../redux/chatDataSlice";
 
+import { useAppSelector } from "../../hooks/hooks";
+
 function JoinRoom() {
   const [username, setUsername] = useState("");
   const [chatcode, setChatCode] = useState("");
@@ -17,36 +17,42 @@ function JoinRoom() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const socket = useMemo(() => connectSocket(socketUrl), []);
+  const socket = useAppSelector((state) => state.socket.socket);
 
-  const handleJoinRoom = () => {
-    dispatch(removeChatData({}));
+  const handleConnectAndJoinRoom = async () => {
+    dispatch(removeChatData());
     if (username && chatcode) {
-      let response: any = socket.emit("joinRoom", {
-        chatcode,
-        username,
-      });
-
-      if (response?.connected) {
+      if (socket) {
+        socket.emit("joinRoom", { chatcode, username });
         socket.on("chatData", (data) => {
+          console.log("Chat data received:", data);
+
           dispatch(
             addChatData({
               username,
               chatcode,
-              chatId: data.chat._id,
+              chatName: data.chat.chatname,
+              chatId: data?.chat._id,
             })
           );
-          dispatch(addChatHistory({ chatHistory: data.messages }));
-          dispatch(addParticipants({ participants: data.chat.participants }));
-        });
 
-        navigate("/chat-room");
-      } else {
-        console.error("Failed to join chat room:", response?.error);
+          const chatMessages = data.messages.map(
+            (msg: { username: string; content: string; chatId: string }) => ({
+              username: msg.username,
+              content: msg.content,
+              chatId: msg.chatId,
+            })
+          );
+
+          dispatch(addChatHistory(chatMessages));
+
+          dispatch(addParticipants(data.chat.participants));
+
+          navigate("/chat-room");
+        });
       }
     }
   };
-
   return (
     <div className="flex flex-col gap-5">
       <input
@@ -65,7 +71,7 @@ function JoinRoom() {
       />
       <button
         className=" bg-[#3765da] px-5 py-2 rounded-md cursor-pointer"
-        onClick={handleJoinRoom}
+        onClick={handleConnectAndJoinRoom}
       >
         Join Chat
       </button>

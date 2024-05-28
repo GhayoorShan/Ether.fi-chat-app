@@ -6,4 +6,5 @@ const router = express.Router();
 // Route to retrieve analytics data
 router.get("/analytics/messages-by-user", getAnalytics);
 
+
 export default router;
