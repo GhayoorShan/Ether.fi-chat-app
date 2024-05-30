@@ -1,10 +1,17 @@
 import { createSlice } from "@reduxjs/toolkit";
+interface ChatMessage {
+  username: string;
+  content: string;
+  chatId: string;
+  chatName: string;
+}
 
 interface ChatData {
   username?: string;
   chatcode?: string;
   chatId?: string;
-  chatHistory?: string[];
+  chatName?: string;
+  chatHistory?: ChatMessage[];
   participants?: string[];
 }
 
@@ -12,6 +19,7 @@ const initialState: ChatData = {
   username: "",
   chatcode: "",
   chatId: "",
+  chatName: "",
   chatHistory: [],
   participants: [],
 };
@@ -24,24 +32,28 @@ const chatSlice = createSlice({
       state.username = action.payload.username;
       state.chatcode = action.payload.chatcode;
       state.chatId = action.payload.chatId;
+      state.chatName = action.payload.chatName;
     },
-    removeChatData(state, action: { payload: ChatData }) {
+    removeChatData(state) {
       state.username = "";
       state.chatcode = "";
       state.chatId = "";
+      state.chatName = "";
+      state.chatHistory = [];
+      state.participants = [];
     },
-    addChatHistory(state, action: { payload: ChatData }) {
-      state.chatHistory = action.payload.chatHistory;
+    addChatHistory(state, action: { payload: ChatMessage[] }) {
+      state.chatHistory = action.payload;
     },
-    updateChatHistory(state, action: { payload: any }) {
+    updateChatHistory(state, action: { payload: ChatMessage }) {
       state.chatHistory?.push(action.payload);
     },
-    addParticipants(state, action: { payload: ChatData }) {
-      state.participants = action.payload.participants;
+    addParticipants(state, action: { payload: string[] }) {
+      state.participants = action.payload;
     },
-    // updateParticipants(state, action: { payload: any }) {
-    //   state.chatHistory?.push(action.payload);
-    // },
+    updateParticipants(state, action: { payload: string }) {
+      state.participants?.push(action.payload);
+    },
   },
 });
 
@@ -50,6 +62,7 @@ export const {
   addChatHistory,
   updateChatHistory,
   addParticipants,
+  updateParticipants,
   removeChatData,
 } = chatSlice.actions;
 export default chatSlice.reducer;
